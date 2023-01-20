@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "A Discord bot that'll pick a random (arbitrary) item from a specified list",
   "main": "index.js",
+  "engines": {
+    "node": ">=18.12.1",
+    "npm": ">=8.19.2"
+  },
   "scripts": {
     "start": "node src/index.js",
     "start:dev": "nodemon -r dotenv/config src/index.js"
