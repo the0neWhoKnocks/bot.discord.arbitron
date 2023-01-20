@@ -57,6 +57,21 @@ const {
 
     // Log in to Discord with your client's token
     client.login(TOKEN);
+    
+    if (process.env.CYCLIC_URL) {
+      // This is purely a requirement of `cyclic.sh` https://docs.cyclic.sh/overview/launch
+      // > It is expected that the start command launches an application that listens to http requests on a TCP port.
+      const http = require('node:http');
+      const port = process.env.CYCLIC_PORT || 3000;
+      http
+        .createServer((req, res) => {
+          res.writeHead(200, { 'Content-Type': 'text/plain' });
+          res.end('OK');
+        })
+        .listen(port, () => {
+          console.log(`Per Cyclic requirements, Server listening on port ${port}.`);
+        });
+    }
   }
   catch (err) {
     console.log(err.stack);
