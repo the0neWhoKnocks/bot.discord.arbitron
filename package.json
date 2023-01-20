@@ -8,6 +8,7 @@
     "npm": ">=8.19.2"
   },
   "scripts": {
+    "lint": "eslint --ext .js --ignore-path .gitignore .",
     "start": "node src/index.js",
     "start:dev": "nodemon -r dotenv/config src/index.js"
   },

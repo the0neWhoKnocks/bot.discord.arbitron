@@ -4,38 +4,38 @@ const addRemove = ({ name, description }) => (subcommand) => {
   return subcommand
     .setName(name)
     .setDescription(description)
-    .addStringOption(option =>
-			option
-				.setName('list')
-				.setDescription(`The list name where a choice will be ${(name === 'add') ? 'added' : 'removed'}.`)
-				.setRequired(true))
-    .addStringOption(option =>
-			option
-				.setName('choices')
-				.setDescription('One or more comma separated items')
-				.setRequired(true));
+    .addStringOption(option => option
+      .setName('list')
+      .setDescription(`The list name where a choice will be ${(name === 'add') ? 'added' : 'removed'}.`)
+      .setRequired(true)
+    )
+    .addStringOption(option => option
+      .setName('choices')
+      .setDescription('One or more comma separated items')
+      .setRequired(true)
+    );
 };
 
 const pick = (subcommand) => {
   return subcommand
     .setName('pick')
     .setDescription('Pick a random choice from a given list.')
-    .addStringOption(option =>
-			option
-				.setName('list')
-				.setDescription('The list where a random choice will be picked.')
-				.setRequired(true));
+    .addStringOption(option => option
+      .setName('list')
+      .setDescription('The list where a random choice will be picked.')
+      .setRequired(true)
+    );
 };
 
 const view = (subcommand) => {
   return subcommand
     .setName('view')
     .setDescription('Displays all the items in a given list.')
-    .addStringOption(option =>
-			option
-				.setName('list')
-				.setDescription('The name of the list.')
-				.setRequired(true));
+    .addStringOption(option => option
+      .setName('list')
+      .setDescription('The name of the list.')
+      .setRequired(true)
+    );
 };
 
 const data = new SlashCommandBuilder()
@@ -51,7 +51,6 @@ module.exports = {
   async execute(interaction) {
     const subCommand = interaction.options.getSubcommand();
     const msg = () => customMsg || `User requested: "${cmd}"`;
-    let ephemeral = false;
     let cmd;
     let customMsg;
     
@@ -92,7 +91,7 @@ module.exports = {
       }
         
       case 'pick':
-        // TODO: 
+        // TODO:
         // - get items from DB
         // - generate random seed from `userId` and timestamp
         // - pick item
@@ -109,6 +108,6 @@ module.exports = {
         });
     }
     
-    await interaction.reply({ content: msg(), ephemeral });
+    await interaction.reply({ content: msg(), ephemeral: true });
   },
 };
