@@ -9,8 +9,8 @@ const {
 } = require('discord.js');
 
 (async function bot() {
-  const CLIENT_ID = process.env.APPLICATION_ID;
-  const TOKEN = process.env.BOT_TOKEN;
+  const CLIENT_ID = process.env.DISCORD__APPLICATION_ID;
+  const TOKEN = process.env.DISCORD__BOT_TOKEN;
   
   try {
     const client = new Client({ intents: [GatewayIntentBits.Guilds] });
