@@ -24,7 +24,9 @@
   },
   "homepage": "https://github.com/the0neWhoKnocks/bot.discord.arbitron#readme",
   "dependencies": {
-    "discord.js": "14.7.1"
+    "discord.js": "14.7.1",
+    "firebase-admin": "11.5.0",
+    "seedrandom": "3.0.5"
   },
   "devDependencies": {
     "dotenv": "16.0.3",

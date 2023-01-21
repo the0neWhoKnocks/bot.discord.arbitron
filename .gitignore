@@ -1,4 +1,5 @@
 # folders
+.ignore
 node_modules
 
 # files
