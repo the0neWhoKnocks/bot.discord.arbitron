@@ -3,10 +3,14 @@ const { join } = require('node:path');
 const {
   Client,
   Collection,
+  Events,
   GatewayIntentBits,
   REST,
   Routes,
 } = require('discord.js');
+const logger = require('./logger');
+
+const log = logger();
 
 (async function bot() {
   const CLIENT_ID = process.env.DISCORD__APPLICATION_ID;
@@ -14,6 +18,11 @@ const {
   
   try {
     const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+    
+    if (process.env.DEBUG) {
+      const discordLogger = logger.custom('discord');
+      client.on(Events.Debug, discordLogger.info);
+    }
     
     // Auto-load commands
     client.commands = new Collection();
@@ -29,17 +38,20 @@ const {
         client.commands.set(command.data.name, command);
       }
       else {
-        console.log(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
+        log.warn(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
       }
     }
     
-    // Update App with loaded commands
+    // Update Discord App with auto-loaded slash commands
     const rest = new REST({ version: '10' }).setToken(TOKEN);
-    console.log('Started refreshing application (/) commands.');
-    await rest.put(Routes.applicationCommands(CLIENT_ID), {
-      body: [...client.commands].map(([, { data }]) => data.toJSON()),
-    });
-    console.log('Successfully reloaded application (/) commands.');
+    const commandsJSON = [...client.commands].map(([, { data }]) => data.toJSON());
+    await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commandsJSON });
+    const formattedCmds = commandsJSON.reduce((str, { name, options }) => {
+      str += `  • /${name}`;
+      if (options) str += ` [${options.map(({ name: optName }) => optName).join('|')}]`;
+      return str;
+    }, '');
+    log.info(`[UPDATED] App slash commands to:\n${formattedCmds}`);
     
     // Load events
     const PATH__EVENTS = join(__dirname, 'events');
@@ -49,9 +61,11 @@ const {
       const event = require(filePath);
       if (event.once) {
         client.once(event.name, (...args) => event.execute(...args));
+        log.info(`[AUTO_LOADED] Event type: once | name: "${event.name}"`);
       }
       else {
         client.on(event.name, (...args) => event.execute(...args));
+        log.info(`[AUTO_LOADED] Event type: on | name: "${event.name}"`);
       }
     }
 
@@ -74,6 +88,6 @@ const {
     }
   }
   catch (err) {
-    console.log(err.stack);
+    log.error(`[ERROR] Problem initializing bot\n${err.stack}`);
   }
 })();
