@@ -18,22 +18,16 @@ A Discord bot that'll pick a random (arbitrary) item from a specified list.
    - Go to `Advanced`
       - Enable `Developer Mode`
 1. Create a test Server for you to mess around in.
-1. Right-click on the test Server, click on `Copy ID`. The Server ID is also referred to as `Guild ID`.
-   - Add this to your `.env` file:
-     ```
-     DISCORD__SERVER_ID=<ID>
-     ```
 1. Go to https://discord.com/developers/applications to start creating the application.
    - Click `New Application`
       - `Name: Arbitron` (click `Create`)
    - In the left menu:
       - General Information
          - Add a description
-         - Copy the `APPLICATION ID` and `PUBLIC KEY`. Discord sometimes refers to `APPLICATION ID` as `CLIENT ID`.
-         - Add those values to your `.env` file:
+         - Copy the `APPLICATION ID`. Discord sometimes refers to `APPLICATION ID` as `CLIENT ID`.
+         - Add that value to your `.env` file:
             ```
             DISCORD__APPLICATION_ID=<ID>
-            DISCORD__PUBLIC_KEY=<KEY>
             ```
       - Bot
          - Click `Add Bot`
@@ -82,7 +76,7 @@ A Discord bot that'll pick a random (arbitrary) item from a specified list.
 1. The new JSON file should contains multiple properties, you only need `client_email`, `private_key`, and `project_id`. Add those values to your `.env` file.
    ```
    FIREBASE__CLIENT_EMAIL=<client_email>
-   FIREBASE__PRIVATE_KEY=<private_key>
+   FIREBASE__PRIVATE_KEY="<private_key>"
    FIREBASE__PROJECT_ID=<project_id>
    ``` 
 1. Navigate to https://console.firebase.google.com/. If you have multiple Google Users signed in, be sure to pick the proper one in the User menu (top right of screen).
