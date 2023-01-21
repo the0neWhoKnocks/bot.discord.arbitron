@@ -10,7 +10,7 @@
   "scripts": {
     "lint": "eslint --ext .js --ignore-path .gitignore .",
     "start": "node src/index.js",
-    "start:dev": "nodemon -r dotenv/config src/index.js"
+    "start:dev": "DEBUG=\"*,-nodemon*\" nodemon -r dotenv/config src/index.js"
   },
   "repository": {
     "type": "git",
@@ -24,9 +24,11 @@
   },
   "homepage": "https://github.com/the0neWhoKnocks/bot.discord.arbitron#readme",
   "dependencies": {
+    "anylogger": "1.0.11",
     "discord.js": "14.7.1",
     "firebase-admin": "11.5.0",
-    "seedrandom": "3.0.5"
+    "seedrandom": "3.0.5",
+    "ulog": "2.0.0-beta.19"
   },
   "devDependencies": {
     "dotenv": "16.0.3",

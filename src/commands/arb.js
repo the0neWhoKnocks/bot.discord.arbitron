@@ -1,6 +1,7 @@
 const { EmbedBuilder, SlashCommandBuilder } = require('discord.js');
 const seedrandom = require('seedrandom');
 const { ROOT_COLLECTION, db } = require('../database');
+const log = require('../logger')('cmd:arb');
 
 const addRemove = ({ name, description }) => (subcommand) => {
   return subcommand
@@ -75,6 +76,8 @@ const buildMsg = ({ color, msg, title }) => {
 
 const getChoices = async (ref) => {
   const doc = await ref.get();
+  log.info('Got list choices from DB');
+  
   const savedChoicesExist = doc.exists;
   return {
     choices: (savedChoicesExist) ? doc.data() : {},
@@ -90,12 +93,15 @@ module.exports = {
     try {
       const serverId = interaction.member.id;
       const subCommand = interaction.options.getSubcommand();
+      const userName = interaction.user.username;
       const list = (interaction.options.getString('list') ?? '').trim().toLowerCase().replace(/[\s_]/g, '-');
-      const serverDocRef = db.collection(ROOT_COLLECTION).doc(`server-${serverId}`);
+      const serverDocName = `server-${serverId}`;
+      const serverDocRef = db.collection(ROOT_COLLECTION).doc(serverDocName);
       const choicesDocRef = serverDocRef.collection(list).doc('choices');
       
       // Event though it's required, garbage could still get passed in.
       if (!list) {
+        log.warn('No list provided for command');
         return await interaction.reply({ content: 'You need to provide a list', ephemeral: true });
       }
       
@@ -104,9 +110,9 @@ module.exports = {
         case 'remove': {
           const adding = subCommand === 'add';
           const choices = (interaction.options.getString('choices') ?? '').split(',').map(item => item.trim()).filter(item => !!item);
-          const userName = interaction.user.username;
           
           if (!choices.length) {
+            log.warn(`No choices provided for command "${subCommand}"`);
             return await interaction.reply({ content: 'You need to provide at least one choice', ephemeral: true });
           }
           
@@ -114,26 +120,47 @@ module.exports = {
             choices: dbChoices,
             exists: savedChoicesExist,
           } = await getChoices(choicesDocRef);
+          const uniqueChoices = [...new Set(choices).entries()].map(([c]) => c);
           const icon = (adding) ? '✅' : '❌';
           let color = msgColors.SUCCESS;
           let msgTitle = `${icon} Updated "${list}" list`;
           let msgParts = [
-            `${userName} ${(adding) ? 'added' : 'removed'} ${(choices.length === 1) ? 'this item' : 'these items'}:`,
-            choices.map((c) => `\`${c}\``).join(', '),
+            `${userName} ${(adding) ? 'added' : 'removed'} ${(uniqueChoices.length === 1) ? 'this item' : 'these items'}:`,
+            uniqueChoices.map((c) => `\`${c}\``).join(', '),
           ];
           let ephemeral = false;
           
           if (adding) {
-            const _choices = [...new Set(choices).entries()].reduce((obj, [c]) => {
+            const _choices = uniqueChoices.reduce((obj, c) => {
               obj[c] = true;
               return obj;
             }, dbChoices);
             await choicesDocRef.set(_choices);
+            log.info(`Added ${uniqueChoices.length} choice${(uniqueChoices.length > 1) ? 's' : ''} to "${list}"`);
           }
           else if (savedChoicesExist) {
-            [...new Set(choices).entries()].forEach(([c]) => {
-              delete dbChoices[c];
+            const deletedItems = [];
+            const notMatched = [];
+            uniqueChoices.forEach((c) => {
+              if (dbChoices[c]) {
+                delete dbChoices[c];
+                deletedItems.push(c);
+              }
+              else {
+                notMatched.push(c);
+              }
             });
+            
+            if (!deletedItems.length) {
+              log.warn(`No exact matches found to remove in list "${list}"`);
+              return await interaction.reply({
+                embeds: [buildMsg({
+                  color: msgColors.WARNING,
+                  msg: `Sorry, there were no exact matches for ${notMatched.map(i => `"${i}"`).join(', ')}.\nNo choices were removed from "${list}"`,
+                })],
+                ephemeral: true,
+              });
+            }
             
             // NOTE: https://firebase.google.com/docs/firestore/data-model
             // > When you delete a document that has subcollections, those
@@ -143,14 +170,22 @@ module.exports = {
             // in multiple stages.
             
             const noChoices = Object.keys(dbChoices).length === 0;
-            (noChoices)
-              // if choices empty, delete `list` collection
-              ? await choicesDocRef.delete()
-              // delete item(s)
-              : await choicesDocRef.set(dbChoices);
+            // if choices empty, delete `list` collection
+            if (noChoices) {
+              await choicesDocRef.delete();
+              log.info(`No choices remain, removed list "${list}"`);
+            }
+            // delete item(s)
+            else {
+              await choicesDocRef.set(dbChoices);
+              log.info(`"${userName}" removed ${uniqueChoices.length} choice${(uniqueChoices.length > 1) ? 's' : ''} from "${list}"`);
+            }
             
             const noLists = (await serverDocRef.listCollections()).length === 0;
-            if (noLists) await serverDocRef.delete();
+            if (noLists) {
+              await serverDocRef.delete();
+              log.info(`No lists remain, removed server group "${serverDocName}"`);
+            }
           }
           else {
             color = msgColors.WARNING;
@@ -159,6 +194,7 @@ module.exports = {
             ephemeral = true;
           }
           
+          log.info(`Inform "${userName}" of changes`);
           return await interaction.reply({
             embeds: [buildMsg({
               color,
@@ -171,7 +207,7 @@ module.exports = {
           
         case 'pick': {
           const { choices } = await getChoices(choicesDocRef);
-          const _choices = Object.keys(choices).map((c) => c);
+          const _choices = Object.keys(choices).map((c) => c).sort();
           let title = '';
           let color = msgColors.WARNING;
           let msg = `No choices exist in list "${list}" to pick from.`;
@@ -186,8 +222,11 @@ module.exports = {
             color = msgColors.SUCCESS;
             msg = '';
             ephemeral = false;
+            
+            log.info(`Chose option #${ndx + 1} out of ${_choices.length} options`);
           }
           
+          log.info(`Sending "${userName}" their random choice`);
           return await interaction.reply({
             embeds: [buildMsg({ color, msg, title })],
             ephemeral,
@@ -196,7 +235,7 @@ module.exports = {
           
         case 'view': {
           const { choices } = await getChoices(choicesDocRef);
-          const _choices = Object.keys(choices).map((c) => c);
+          const _choices = Object.keys(choices).map((c) => c).sort();
           let title = '';
           let color = msgColors.WARNING;
           let msg = `No choices exist for list "${list}".`;
@@ -204,9 +243,10 @@ module.exports = {
           if (_choices.length) {
             title = 'Available Choices';
             color = msgColors.SUCCESS;
-            msg = `\`\`\`\n${_choices.sort().map((c) => `• ${c}`).join('\n')}\n\`\`\``;
+            msg = `\`\`\`\n${_choices.map((c, ndx) => `[${`${ndx + 1}`.padStart(`${_choices.length}`.length, '0')}] • ${c}`).join('\n')}\n\`\`\``;
           }
-            
+          
+          log.info(`Sending "${userName}" the list of choices`);
           return await interaction.reply({
             embeds: [buildMsg({ color, msg, title })],
             ephemeral: true,
@@ -221,6 +261,7 @@ module.exports = {
         return msg;
       }, '');
       
+      log.error(`Problem running command\n${err.stack}`);
       await interaction.reply({
         embeds: [buildMsg({
           color: msgColors.ERROR,
