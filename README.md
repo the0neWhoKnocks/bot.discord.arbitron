@@ -6,6 +6,10 @@ A Discord bot that'll pick a random (arbitrary) item from a specified list.
   - [Discord](#discord)
   - [Firebase](#firebase)
   - [NodeJS](#nodejs)
+- [Deployment](#deployment)
+  - [Build and Deploy Container](#build-and-deploy-container)
+  - [Set Up the VM on Google Cloud](#set-up-the-vm-on-google-cloud)
+  - [Update the Bot](#update-the-bot)
 
 ---
 
@@ -109,3 +113,105 @@ If you want/need to delete a project:
    npm run start:dev
    ```
 1. If you see a message that reads something like `Logged in as Arbitron`, go to your Discord Server and type `/arb` to see if the commands pop up.
+
+---
+
+## Deployment
+
+### Build and Deploy Container
+
+This should happen when ever you need to push out new changes.
+
+```sh
+docker compose build
+
+# log in to Docker (if you aren't already)
+docker login
+
+# this bot isn't mission critical, so I don't care about versioning for now
+docker push theonewhoknocks/bot-discord-arbitron:latest
+```
+
+
+### Set Up the VM on Google Cloud
+
+This is only needed once.
+
+1. Go to https://cloud.google.com/free, to a search for `micro instance` to verify it's still offered as a free item.
+1. If you're not signed in, do so now. Go to https://console.cloud.google.com.
+   - If you have multiple accounts signed in, make sure you switch to the proper account.
+1. Since you've wired up Firebase earlier you should already be in the correct project, if not, select the project now.
+1. To spin up a VM, you'll have to wire up a billing account.
+   - You shouldn't be charged for anything without notice first. It's up to you what you're comfortable with. This is called out on their site though:
+      > **No autocharge after free trial ends**
+      > We ask you for your credit card to make sure you are not a robot. You won’t be charged unless you manually upgrade to a paid account.
+   ```
+   [Step 1]
+     Country: USA
+     Organization needs: Other
+     [X] Terms
+    
+   [Step 2]
+     Account type: Individual
+     Payment method: <CC_INFO>
+   ```
+1. Type `/`, search for `VM instances`, click on it.
+   - If it's your first time in this area, click **Enable**. It'll take a few minutes for it to get stood up.
+   - You should be on the **Instances** tab. Click **CREATE INSTANCE**.
+      - Details about what options you should fill out are outlined here https://cloud.google.com/free/docs/free-cloud-features#compute.
+         ```
+         Name: discord-bot-arbitron
+         Region: us-west1
+         Zone: us-west1-b  (just took what was auto-assigned)
+         Series: E2
+         Machine type: e2-micro  (it's what was mentioned on the /free page)
+         
+         Boot disk: (click CHANGE)
+           [PUBLIC IMAGES]
+             Operating system: Ubuntu
+             Boot disk type: Standard persistent disk
+         
+         Firwall
+           [X] Allow HTTP traffic
+           [X] Allow HTTPS traffic
+         ```
+      - Click **CREATE**
+         - If you want to automate the process, there's an **EQUIVALENT CODE** button that opens a flyout that displays CLI and REST commands.
+   - Once the VM is created, click the **SSH** button and choose **Open in browser window**.
+      - Install `docker`
+         ```sh
+         (
+           sudo apt install ca-certificates curl gnupg lsb-release
+           sudo mkdir -p /etc/apt/keyrings
+           curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+           echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(cat /etc/os-release | grep "UBUNTU_CODENAME" | sed "s|UBUNTU_CODENAME=||") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+           sudo apt update
+           sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+           sudo usermod -aG docker $USER
+         )
+         ```
+         Close the SSH connection, and restart it so the new group permissions for your User take effect.
+      - Click the **UPLOAD FILE** button. Pick both `.env` and `docker-compose.yml` from this repo.
+      - Set up folders/files, and run the Container.
+         ```sh
+         mkdir -p bot && mv ./.env ./docker-compose.yml ./bot/ && cd bot
+         # start the container
+         docker compose up -d
+         # check it's logs
+         docker compose logs -f
+         ```
+
+
+### Update the Bot
+
+1. Go to your Cloud instances https://console.cloud.google.com/compute/instances
+1. SSH in to the VM, and run:
+   ```sh
+   (
+     cd bot
+     docker compose down
+     docker pull theonewhoknocks/bot-discord-arbitron:latest
+     docker compose build
+     docker compose up -d
+   )
+   ```
