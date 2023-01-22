@@ -1,0 +1,13 @@
+services:
+  discord_bot_arbitron:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: discord_bot_arbitron
+    environment:
+      DISCORD__APPLICATION_ID: "${DISCORD__APPLICATION_ID}"
+      DISCORD__BOT_TOKEN: "${DISCORD__BOT_TOKEN}"
+      FIREBASE__CLIENT_EMAIL: "${FIREBASE__CLIENT_EMAIL}"
+      FIREBASE__PRIVATE_KEY: "${FIREBASE__PRIVATE_KEY}"
+      FIREBASE__PROJECT_ID: "${FIREBASE__PROJECT_ID}"
+    image: theonewhoknocks/bot-discord-arbitron
