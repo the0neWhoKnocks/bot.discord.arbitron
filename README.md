@@ -211,7 +211,6 @@ This is only needed once.
      cd bot
      docker compose down
      docker pull theonewhoknocks/bot-discord-arbitron:latest
-     docker compose build
      docker compose up -d
    )
    ```
