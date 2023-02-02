@@ -91,9 +91,10 @@ module.exports = {
   data,
   async execute(interaction) {
     try {
-      const serverId = interaction.member.id;
+      const serverId = interaction.guildId;
       const subCommand = interaction.options.getSubcommand();
-      const userName = interaction.user.username;
+      const userId = interaction.member.user.id;
+      const userName = interaction.member.user.username;
       const list = (interaction.options.getString('list') ?? '').trim().toLowerCase().replace(/[\s_]/g, '-');
       const serverDocName = `server-${serverId}`;
       const serverDocRef = db.collection(ROOT_COLLECTION).doc(serverDocName);
@@ -214,7 +215,6 @@ module.exports = {
           let ephemeral = true;
           
           if (_choices.length) {
-            const userId = interaction.user.id;
             const seed = (seedrandom(`${userId}-${Date.now()}`))();
             const ndx = randomWithinRange(1, _choices.length - 1, seed);
             
