@@ -4,7 +4,10 @@ module.exports = {
   name: InteractionCreate,
   on: true,
   async execute(interaction) {
-    if (!interaction.isChatInputCommand()) return;
+    if (
+      !interaction.isChatInputCommand()
+      && !interaction.isAutocomplete()
+    ) return;
     
     const { commandName } = interaction;
     const command = interaction.client.commands.get(commandName);

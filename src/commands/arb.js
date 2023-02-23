@@ -11,6 +11,7 @@ const addRemove = ({ name, description }) => (subcommand) => {
       .setName('list')
       .setDescription(`The list name where a choice will be ${(name === 'add') ? 'added' : 'removed'}.`)
       .setRequired(true)
+      .setAutocomplete(name === 'remove')
     )
     .addStringOption(option => option
       .setName('choices')
@@ -27,6 +28,7 @@ const pick = (subcommand) => {
       .setName('list')
       .setDescription('The list where a random choice will be picked.')
       .setRequired(true)
+      .setAutocomplete(true)
     );
 };
 
@@ -38,6 +40,7 @@ const view = (subcommand) => {
       .setName('list')
       .setDescription('The name of the list.')
       .setRequired(true)
+      .setAutocomplete(true)
     );
 };
 
@@ -87,24 +90,47 @@ const getChoices = async (ref) => {
 
 const randomWithinRange = (min, max, seed) => Math.floor(seed * (max - min + 1) + min);
 
+const listNames = {};
+
 module.exports = {
   data,
   async execute(interaction) {
     try {
       const serverId = interaction.guildId;
-      const subCommand = interaction.options.getSubcommand();
-      const userId = interaction.member.user.id;
-      const userName = interaction.member.user.username;
-      const list = (interaction.options.getString('list') ?? '').trim().toLowerCase().replace(/[\s_]/g, '-');
       const serverDocName = `server-${serverId}`;
       const serverDocRef = db.collection(ROOT_COLLECTION).doc(serverDocName);
-      const choicesDocRef = serverDocRef.collection(list).doc('choices');
       
+      // If list names not cached, do so now.
+      // TODO: If multiple people hit up a Bot at the same time before the cache
+      // is established, multiple requests could go out. Not stressing about that
+      // for now.
+      if (!listNames[serverId]) {
+        listNames[serverId] = new Set();
+        (await serverDocRef.listCollections()).forEach(({ _queryOptions: { collectionId } }) => {
+          listNames[serverId].add(collectionId);
+        });
+      }
+      
+      // `list` is the only autocomplete option so far, so no extra logic needed for now
+      if (interaction.isAutocomplete()) {
+        const listOpts = [...listNames[serverId]].map((collectionId) => ({
+          name: collectionId,
+          value: collectionId,
+        }));
+        return await interaction.respond(listOpts);
+      }
+      
+      const list = (interaction.options.getString('list') ?? '').trim().toLowerCase().replace(/[\s_]/g, '-');
       // Event though it's required, garbage could still get passed in.
       if (!list) {
         log.warn('No list provided for command');
         return await interaction.reply({ content: 'You need to provide a list', ephemeral: true });
       }
+      
+      const subCommand = interaction.options.getSubcommand();
+      const userId = interaction.member.user.id;
+      const userName = interaction.member.user.username;
+      const choicesDocRef = serverDocRef.collection(list).doc('choices');
       
       switch (subCommand) {
         case 'add':
@@ -137,6 +163,7 @@ module.exports = {
               return obj;
             }, dbChoices);
             await choicesDocRef.set(_choices);
+            listNames[serverId].add(list);
             log.info(`Added ${uniqueChoices.length} choice${(uniqueChoices.length > 1) ? 's' : ''} to "${list}"`);
           }
           else if (savedChoicesExist) {
@@ -174,6 +201,7 @@ module.exports = {
             // if choices empty, delete `list` collection
             if (noChoices) {
               await choicesDocRef.delete();
+              listNames[serverId].delete(list);
               log.info(`No choices remain, removed list "${list}"`);
             }
             // delete item(s)
