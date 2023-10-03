@@ -200,6 +200,45 @@ This is only needed once.
          # check it's logs
          docker compose logs -f
          ```
+      - Stop the container `docker compose down` (if running).
+      - Make sure things start up after the VM boots:
+         - `sudo vim /etc/rc.local` (run `echo $HOME` to get `<USER_HOME>` value)
+            ```
+            #!/bin/bash
+            
+            (
+              cd <USER_HOME>/bot
+              docker compose up -d
+            )
+            
+            exit 0
+            ```
+         - `sudo chmod +x /etc/rc.local`
+1. Set up a schedule to limit when the VM runs.
+   - While in **VM Instances**, go to the **Instance Shedules** tab.
+   - Click **Create Instance Schedule** button (seems to only be there if a schedule doesn't already exist).
+      - Fill out form
+         ```
+         Name: discord-bot-arbitron
+         Description: Run only on game night
+         Region: us-west1 (Oregon)
+         Start Time: 7:00 pm
+         Stop Time: 11:00 pm
+         Time Zone: Pacific Daylight Time (select America/Los_Angeles)
+         Initiate Date: 
+         End Date: (empty)
+         Frequency: Repeat weekly
+         Day of the week: Wednesday
+         ```
+      - Click **Submit**
+   - Select new schedule item.
+      - Click **Add Instances to Schedule**, select the `discord-bot-arbitron` item, click **Add**.
+         - If you get a permissions error while adding:
+            - Type `/`, type `IAM & Admin`, select the item.
+            - Check the box **Include Google-provided role grants**
+            - In the **Filter** box, type `compute-system`, there should an item ending with `.iam.gserviceaccount.com`, select it. Click the pencil (edit) icon.
+            - Click **Add Another Role**, type `Compute` and select `Compute Instance Admin (v1)`, click **Save**.
+            - Retry to add the same instance to the schedule, it should work now.
 
 
 ### Update the Bot
