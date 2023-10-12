@@ -11,13 +11,26 @@ const {
 const logger = require('./logger');
 
 const log = logger();
+let client;
+
+// Log the Bot out immediately if the process is going down.
+['SIGINT', 'SIGQUIT', 'SIGTERM'].forEach((signal) => {
+  process.on(signal, (sig) => {
+    log.warn(`[${sig}] Process killed, stopping Discord Bot`);
+    client?.destroy();
+  });
+});
+process.on('uncaughtExceptionMonitor', (err) => {
+  log.error(`Fatal error:\n${err.stack}`);
+  client?.destroy();
+});
 
 (async function bot() {
   const CLIENT_ID = process.env.DISCORD__APPLICATION_ID;
   const TOKEN = process.env.DISCORD__BOT_TOKEN;
   
   try {
-    const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+    client = new Client({ intents: [GatewayIntentBits.Guilds] });
     
     if (process.env.DEBUG) {
       const discordLogger = logger.custom('discord');

@@ -9,7 +9,7 @@
   },
   "scripts": {
     "lint": "eslint --ext .js --ignore-path .gitignore .",
-    "start": "node src/index.js",
+    "start": "node -r dotenv/config src/index.js",
     "start:dev": "DEBUG=\"*,-nodemon*\" nodemon --inspect -r dotenv/config src/index.js"
   },
   "repository": {

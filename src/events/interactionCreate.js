@@ -7,6 +7,7 @@ module.exports = {
     if (
       !interaction.isChatInputCommand()
       && !interaction.isAutocomplete()
+      && !interaction.reply // not sure what causes this, but it happens on Amazon from time to time (slow connection?)
     ) return;
     
     const { commandName } = interaction;
