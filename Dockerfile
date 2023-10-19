@@ -24,7 +24,7 @@ RUN ["node", "-e", " \
 "]
 
 # Set up the environment
-FROM node18-base AS base-movielist
+FROM node18-base AS base-arbitron
 ENV NODE_ENV=production
 ENV APP=/home/node/app
 ENV IN_CONTAINER=true

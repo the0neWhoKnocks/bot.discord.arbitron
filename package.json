@@ -25,7 +25,7 @@
   "homepage": "https://github.com/the0neWhoKnocks/bot.discord.arbitron#readme",
   "dependencies": {
     "anylogger": "1.0.11",
-    "discord.js": "14.7.1",
+    "discord.js": "14.13.0",
     "firebase-admin": "11.5.0",
     "seedrandom": "3.0.5",
     "ulog": "2.0.0-beta.19"
