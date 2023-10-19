@@ -72,7 +72,7 @@ const buildMsg = ({ color, msg, title }) => {
   };
   
   return builder
-    .setColor(`0x${color || 'FF0000'}`)
+    .setColor(`#${color || 'FF0000'}`)
     .conditionalTitle(title)
     .conditionalMsg(msg);
 };
